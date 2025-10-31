@@ -20,7 +20,7 @@ public class PostController {
 
     private final UploadService uploadService;
 
-    @Value("${minio.bucket-name}")
+    @Value("${aws.s3.bucket-name}")
     private String bucket;
 
     public PostController(UploadService uploadService) {
@@ -29,7 +29,7 @@ public class PostController {
 
     @PostMapping("/upload/skeleton")
     public ResponseEntity<UploadUrlDto> uploadSkeleton(@RequestBody ObjectNode data) {
-        
+
         try {
             String userId = data.get("userId").asText();
             String videoName = data.get("videoName").asText();
@@ -38,17 +38,18 @@ public class PostController {
 
             Video video = uploadService.uploadSkeleton(userId, videoName, joints);
 
-            String objectName = userId + "/" + video.getVideoId() + "/" + videoName + fileExtension;
+            String objectName = userId + "-" + video.getVideoId() + "-" + videoName + fileExtension;
 
             String uploadUrl = uploadService
-            .createUploadUrl(userId, video.getVideoId(), bucket, objectName)
-            .getUploadUrl();
+                    .createUploadUrl(userId, video.getVideoId(), bucket, objectName)
+                    .getUploadUrl();
 
             UploadUrlDto response = new UploadUrlDto(bucket, objectName, uploadUrl);
 
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }

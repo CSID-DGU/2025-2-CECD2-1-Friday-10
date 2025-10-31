@@ -19,25 +19,21 @@ import com.example.demo.Domain.dto.UploadUrlDto;
 public class UploadService {
 
     private final UserRepository userRepository;
-
     private final VideoRepository videoRepository;
-
     private final FrameRepository frameRepository;
-
-    private final MinioService minioService;
-
+    private final S3Service s3Service;
     private final VideoService videoService;
 
     public UploadService(
         UserRepository userRepository,
         VideoRepository videoRepository,
         FrameRepository frameRepository,
-        MinioService minioService,
+        S3Service s3Service,
         VideoService videoService) {
             this.userRepository = userRepository;
             this.videoRepository = videoRepository;
             this.frameRepository = frameRepository;
-            this.minioService = minioService;
+            this.s3Service = s3Service;
             this.videoService = videoService;
     }
 
@@ -88,7 +84,7 @@ public class UploadService {
     }
 
     public UploadUrlDto createUploadUrl(String userId, String videoId, String bucket, String objectName) throws Exception {
-        String uploadUrl = minioService.getUploadUrl(bucket, objectName);
+        String uploadUrl = s3Service.getUploadUrl(bucket, objectName);
         System.out.println("upload url generated");
 
         videoService.saveVideoMetadata(userId, videoId, objectName);
@@ -97,7 +93,7 @@ public class UploadService {
     }
 
     public UploadUrlDto createDownloadUrl(String userId, String videoId, String bucket, String objectName) throws Exception {
-        String downloadUrl = minioService.getDownloadUrl(bucket, objectName);
+        String downloadUrl = s3Service.getDownloadUrl(bucket, objectName);
         System.out.println("download url generated");
 
         return new UploadUrlDto(bucket, objectName, downloadUrl);

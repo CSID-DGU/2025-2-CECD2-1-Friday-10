@@ -2,7 +2,6 @@ package com.example.demo.API.Controller;
 
 import com.example.demo.Domain.Service.UploadService;
 import com.example.demo.Domain.Service.VideoService;
-//import com.example.demo.Domain.db.Video;
 import com.example.demo.Domain.Service.EstimateService;
 import com.example.demo.Domain.dto.DownloadUrlDto;
 import com.example.demo.Domain.dto.FrameDto;
@@ -27,14 +26,11 @@ import java.util.List;
 public class GetController {
 
     private final UploadService uploadService;
-
     private final EstimateService estimateService;
-
     private final VideoService videoService;
-
     private final VideoRepository videoRepository;
 
-    @Value("${minio.bucket-name}")
+    @Value("${aws.s3.bucket-name}")
     private String bucket;
 
     public GetController(
@@ -93,14 +89,13 @@ public class GetController {
         @PathVariable String userId,
         @PathVariable String videoId
     ) {
-            boolean isDeleted = videoService.deleteVideo(userId, videoId);
+        boolean isDeleted = videoService.deleteVideo(userId, videoId);
 
-            if (isDeleted) {
-                return ResponseEntity.noContent().build();
-            }
-            else {
-                return ResponseEntity.notFound().build();
-            }
+        if (isDeleted) {
+            return ResponseEntity.noContent().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/download/user/{userId}/video/{videoId}")
@@ -108,25 +103,22 @@ public class GetController {
         @PathVariable String userId,
         @PathVariable String videoId
     ) {
-        
+
         try {
             String objectName = videoRepository.findObjectNameByUserIdAndVideoId(userId, videoId)
-            .orElseThrow(() -> new EntityNotFoundException("video not found"));
-
-            System.out.println(objectName);
+                    .orElseThrow(() -> new EntityNotFoundException("video not found"));
 
             String videoName = objectName.substring(objectName.lastIndexOf("/") + 1);
-            System.out.println(videoName);
 
             String downloadUrl = uploadService
-            .createDownloadUrl(userId, videoId, bucket, objectName)
-            .getUploadUrl();
+                    .createDownloadUrl(userId, videoId, bucket, objectName)
+                    .getUploadUrl();
 
-            System.out.println(downloadUrl);
             DownloadUrlDto response = new DownloadUrlDto(bucket, videoName, downloadUrl);
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
