@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  "include": [
+    "src",           // 이미 있으면 그대로 두고,
+    "src/globals.d.ts"  // 선언 파일 경로 추가
+  ]
+}
