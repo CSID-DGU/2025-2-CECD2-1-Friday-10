@@ -48,8 +48,7 @@ export function directRig(frame: SkeletonFrame, restQuats: Record<VRMHumanBoneNa
 
   const isValid = (index: number) => pts[index] !== undefined;
   
-  // GHUM/MediaPipe 데이터는 33개 관절 (인덱스 0~32)를 사용합니다.
-  // 이 코드에서는 33-36을 임시 몸통 관절로 사용하고 있습니다. (33: Neck, 34: Chest, 35: Hips)
+  // temp index 33-35 (33: Neck, 34: Chest, 35: Hips)
 
   // 1. Hips 및 Spine 회전
   
@@ -64,7 +63,7 @@ export function directRig(frame: SkeletonFrame, restQuats: Record<VRMHumanBoneNa
     const v_hip_lr = p_rHip.clone().sub(p_lHip); // L->R 힙 벡터
     const v_hip_ls = p_spine.clone().sub(p_lHip); // L_Hip -> Spine 벡터
     
-    // 외적 순서 조정: v_hip_lr x v_hip_ls. 순서에 따라 법선 벡터의 방향이 결정됩니다.
+    // 외적 순서 조정: v_hip_lr x v_hip_ls. 순서에 따라 법선 벡터의 방향 결정
     const hipsForward = new THREE.Vector3().crossVectors(v_hip_lr, v_hip_ls).normalize(); 
     
     // Upward (Y): 힙 중앙에서 스파인 중앙으로
@@ -90,7 +89,7 @@ export function directRig(frame: SkeletonFrame, restQuats: Record<VRMHumanBoneNa
     
     const chestLook = lookRotation(chestForward, chestUpward);
     const chestFinal = chestLook.clone().multiply(restQuats['chest'].clone().invert());
-    out['chest'] = chestFinal; 
+    out['chest'] = out['hips']?.clone().invert().multiply(chestFinal); 
   }
 
   // head & neck
@@ -111,10 +110,11 @@ export function directRig(frame: SkeletonFrame, restQuats: Record<VRMHumanBoneNa
 
     const headLook = lookRotation(headForward, headUpward);
     const headFinal = headLook.clone().multiply(restQuats['head'].clone().invert());
-    out['head'] = headFinal;
-    out['neck'] = headFinal;
+    out['head'] = out['chest']?.clone().invert().multiply(headFinal);
+    out['neck'] = out['head']?.clone().invert().multiply(headFinal);
   }
 
+  // TODO
   // 나머지 사지
   for (const def of BONE_DEFS_FULL) {
     if (!isValid(def.parentIndex) || !isValid(def.childIndex) || !restQuats[def.name]) continue;
