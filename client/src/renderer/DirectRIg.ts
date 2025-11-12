@@ -178,7 +178,7 @@ export function directRig(frame: SkeletonFrame, restQuats: Record<VRMHumanBoneNa
 
   const rightLegLeft = new THREE.Vector3().crossVectors(rightLowerLegUpward, rightUpperLegUpward);
 
-  const rightUpperLegForward = new THREE.Vector3().crossVectors(rightLegLeft, leftUpperLegUpward);
+  const rightUpperLegForward = new THREE.Vector3().crossVectors(rightLegLeft, rightUpperLegUpward);
   const rightUpperLegLook = lookRotation(rightUpperLegForward, rightUpperLegUpward);
   const rightUpperLegWorld = rightUpperLegLook.clone().multiply(restQuats['rightUpperLeg'].clone().invert());
   out['rightUpperLeg'] = hipWorld?.clone().invert().multiply(rightUpperLegWorld);
@@ -188,9 +188,29 @@ export function directRig(frame: SkeletonFrame, restQuats: Record<VRMHumanBoneNa
   const rightLowerLegWorld = rightLowerLegLook.clone().multiply(restQuats['rightLowerLeg'].clone().invert());
   out['rightLowerLeg'] = rightUpperLegWorld?.clone().invert().multiply(rightLowerLegWorld);
 
+  // Foot
+  // left
+  const p_lFoot = pts[31];
+  const p_lHeel = pts[29];
+
+  const leftFootForward = p_lHeel.clone().sub(p_lFoot);
+  const leftFootUpward = p_lAnkle.clone().sub(p_lHeel);
+  const leftFootLook = lookRotation(leftFootForward, leftFootUpward);
+  const leftFootWorld = leftFootLook.clone().multiply(restQuats['leftFoot'].clone().invert());
+  out['leftFoot'] = leftLowerLegWorld?.clone().invert().multiply(leftFootWorld);
+
+  // right
+  const p_rFoot = pts[32];
+  const p_rHeel = pts[30];
+
+  const rightFootForward = p_rHeel.clone().sub(p_rFoot);
+  const rightFootUpward = p_rAnkle.clone().sub(p_rHeel);
+  const rightFootLook = lookRotation(rightFootForward, rightFootUpward);
+  const rightFootWorld = rightFootLook.clone().multiply(restQuats['rightFoot'].clone().invert());
+  out['rightFoot'] = rightLowerLegWorld?.clone().invert().multiply(rightFootWorld);
+
   // TODO
   // Hand
-  // Foot
 
   return out as Record<VRMHumanBoneName, THREE.Quaternion>;
 }
