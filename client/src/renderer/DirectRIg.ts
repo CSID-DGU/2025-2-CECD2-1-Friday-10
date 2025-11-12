@@ -45,8 +45,6 @@ export function directRig(frame: SkeletonFrame, restQuats: Record<VRMHumanBoneNa
   const pts = frame.map(j => new THREE.Vector3(j.position[0], j.position[1], j.position[2]));
   const out: Partial<Record<VRMHumanBoneName, THREE.Quaternion>> = {};
   // const finalOut: Partial<Record<VRMHumanBoneName, THREE.Quaternion>> = {};
-
-  const isValid = (index: number) => pts[index] !== undefined;
   
   // temp index 33-35 (33: Neck, 34: Chest, 35: Hips)
 
@@ -55,196 +53,144 @@ export function directRig(frame: SkeletonFrame, restQuats: Record<VRMHumanBoneNa
   // 힙 회전 계산: 전방 벡터(평면 법선) 및 상향 벡터(힙-척추 방향)
   const p_rHip = pts[24];
   const p_lHip = pts[23];
-  const p_spine = pts[35]; // mid spine 위치 (C# 코드를 따른 인덱스)
+  const p_pelvis = pts[34];
+  const p_spine = pts[35];
 
-  if (isValid(24) && isValid(23) && isValid(35) && restQuats['hips']) {
-    // Forward (Z): Hips 평면의 법선. (L_Hip -> R_Hip) x (L_Hip -> Spine)
-    // Three.js 기준: 법선이 -Z(앞)을 향하도록 조정
-    const v_hip_lr = p_rHip.clone().sub(p_lHip); // L->R 힙 벡터
-    const v_hip_ls = p_spine.clone().sub(p_lHip); // L_Hip -> Spine 벡터
-    
-    // 외적 순서 조정: v_hip_lr x v_hip_ls. 순서에 따라 법선 벡터의 방향 결정
-    const hipsForward = new THREE.Vector3().crossVectors(v_hip_lr, v_hip_ls).normalize(); 
-    
-    // Upward (Y): 힙 중앙에서 스파인 중앙으로
-    const hipsUpward = p_spine.clone().sub(p_rHip.clone().add(p_lHip).multiplyScalar(0.5)).normalize(); 
-    
-    const hipLook = lookRotation(hipsForward, hipsUpward);
-    const hipFinal = hipLook.clone().multiply(restQuats['hips'].clone().invert()); 
-    out['hips'] = hipFinal;
-  }
-  const p_neck = pts[33];   // Neck 위치
+  // Forward (Z): Hips 평면의 법선. (L_Hip -> R_Hip) x (L_Hip -> Spine)
+  // Three.js 기준: 법선이 -Z(앞)
+  const v_hip_lr = p_rHip.clone().sub(p_lHip); // L->R 힙 벡터
+  const v_hip_ls = p_spine.clone().sub(p_lHip); // L_Hip -> Spine 벡터
+  
+  // 외적 순서 조정: v_hip_lr x v_hip_ls. 순서에 따라 법선 벡터의 방향 결정
+  const hipsForward = new THREE.Vector3().crossVectors(v_hip_lr, v_hip_ls).normalize(); 
+  
+  // Upward (Y): Hip mid ->  Spine
+  const hipsUpward = p_spine.clone().sub(p_pelvis).normalize(); 
+  
+  const hipLook = lookRotation(hipsForward, hipsUpward);
+  const hipWorld = hipLook.clone().multiply(restQuats['hips'].clone().invert()); 
+  out['hips'] = hipWorld;
+
+
+  const p_neck = pts[33];   // Neck
   const p_rShoulder = pts[12];
   const p_lShoulder = pts[11];
 
-  if (isValid(12) && isValid(11) && isValid(35) && isValid(33) && restQuats['chest']) {
-    // Forward (Z): Shoulder 평면의 법선
-    const v_sh_lr = p_rShoulder.clone().sub(p_lShoulder); // L->R 어깨 벡터
-    const v_sh_ls = p_spine.clone().sub(p_lShoulder); // L_Shoulder -> Spine 벡터
-    
-    const chestForward = new THREE.Vector3().crossVectors(v_sh_ls, v_sh_lr).normalize(); 
-    
-    // Upward (Y): 스파인 중앙에서 목으로
-    const chestUpward = p_neck.clone().sub(p_spine).normalize(); 
-    
-    const chestLook = lookRotation(chestForward, chestUpward);
-    const chestFinal = chestLook.clone().multiply(restQuats['chest'].clone().invert());
-    out['chest'] = out['hips']?.clone().invert().multiply(chestFinal); 
-  }
+  // Forward (Z): Shoulder 평면의 법선
+  const v_sh_lr = p_rShoulder.clone().sub(p_lShoulder); // L->R shoulder vector
+  const v_sh_ls = p_spine.clone().sub(p_lShoulder); // L_Shoulder -> Spine vector
+  
+  const chestForward = new THREE.Vector3().crossVectors(v_sh_ls, v_sh_lr).normalize(); 
+  
+  // Upward (Y): 스파인 중앙에서 목으로
+  const chestUpward = p_neck.clone().sub(p_spine).normalize(); 
+  
+  const chestLook = lookRotation(chestForward, chestUpward);
+  const chestWorld = chestLook.clone().multiply(restQuats['chest'].clone().invert());
+  out['chest'] = hipWorld?.clone().invert().multiply(chestWorld); 
+
 
   // head & neck
-  const p_nose = pts[0]; // 0번 랜드마크 (Nose)
-  const p_left_eye = pts[7]; // 7번 랜드마크 (Left Eye)
-  const p_right_eye = pts[8]; // 8번 랜드마크 (Right Eye)
+  const p_nose = pts[0];
+  const p_left_eye = pts[7];
+  const p_right_eye = pts[8];
   const p_mid_eye = p_left_eye.clone().add(p_right_eye).multiplyScalar(0.5);
 
-  if (isValid(0) && isValid(7) && isValid(8) && isValid(33) && restQuats['head']) {
-    // Forward(Z): Eye 평면의 법선
-    const v_eye_lr = p_right_eye.clone().sub(p_left_eye);
-    const v_eye_ls = p_neck.clone().sub(p_left_eye);
+  // Forward(Z): Eye 평면의 법선
+  const v_eye_lr = p_right_eye.clone().sub(p_left_eye);
+  const v_eye_ls = p_neck.clone().sub(p_left_eye);
 
-    const headForward = new THREE.Vector3().crossVectors(v_eye_ls, v_eye_lr).normalize();
+  const headForward = new THREE.Vector3().crossVectors(v_eye_ls, v_eye_lr).normalize();
 
-    // upward
-    const headUpward = p_mid_eye.clone().sub(p_neck).normalize();
+  // upward
+  const headUpward = p_mid_eye.clone().sub(p_neck).normalize();
 
-    const headLook = lookRotation(headForward, headUpward);
-    const headFinal = headLook.clone().multiply(restQuats['head'].clone().invert());
-    out['head'] = out['chest']?.clone().invert().multiply(headFinal);
-    out['neck'] = out['head']?.clone().invert().multiply(headFinal);
-  }
+  const headLook = lookRotation(headForward, headUpward);
+  const headWorld = headLook.clone().multiply(restQuats['neck'].clone().invert());
+  out['head'] = chestWorld.clone().invert().multiply(headWorld);
+  out['neck'] = out['head'];
+
+  // Arm
+  // left
+  const p_lElbow = pts[13];
+  const p_lWrist = pts[15];
+
+  const v_l_u_arm = p_lShoulder.clone().sub(p_lElbow);
+  const v_l_l_arm = p_lElbow.clone().sub(p_lWrist);
+
+  const leftArmUpward = new THREE.Vector3().crossVectors(v_l_l_arm, v_l_u_arm).normalize();
+  const leftUpperArmForward = new THREE.Vector3().crossVectors(v_l_u_arm, leftArmUpward).normalize();
+  const leftUpperArmLook = lookRotation(leftUpperArmForward, leftArmUpward);
+  const leftUpperArmWorld = leftUpperArmLook.clone().multiply(restQuats['leftUpperArm'].clone().invert());
+  out['leftUpperArm'] = chestWorld?.clone().invert().multiply(leftUpperArmWorld); 
+
+  const leftLowerArmForward = new THREE.Vector3().crossVectors(v_l_l_arm, leftArmUpward).normalize();
+  const leftLowerArmLook = lookRotation(leftLowerArmForward, leftArmUpward);
+  const leftLowerArmWorld = leftLowerArmLook.clone().multiply(restQuats['leftLowerArm'].clone().invert());
+  out['leftLowerArm'] = leftUpperArmWorld?.clone().invert().multiply(leftLowerArmWorld);
+
+  // right
+  const p_rElbow = pts[14];
+  const p_rWrist = pts[16];
+
+  const v_r_u_arm = p_rElbow.clone().sub(p_rShoulder);
+  const v_r_l_arm = p_rWrist.clone().sub(p_rElbow);
+
+  const rightArmUpward = new THREE.Vector3().crossVectors(v_r_u_arm, v_r_l_arm).normalize();
+
+  const rightUpperArmForward = new THREE.Vector3().crossVectors(v_r_u_arm, rightArmUpward).normalize();
+  const rightUpperArmLook = lookRotation(rightUpperArmForward, rightArmUpward);
+  const rightUpperArmWorld = rightUpperArmLook.clone().multiply(restQuats['rightUpperArm'].clone().invert());
+  out['rightUpperArm'] = chestWorld?.clone().invert().multiply(rightUpperArmWorld)
+
+  const rightLowerArmForward = new THREE.Vector3().crossVectors(v_r_l_arm, rightArmUpward).normalize();
+  const rightLowerArmLook = lookRotation(rightLowerArmForward, rightArmUpward);
+  const rightLowerArmWorld = rightLowerArmLook.clone().multiply(restQuats['rightLowerArm'].clone().invert());
+  out['rightLowerArm'] = rightUpperArmWorld?.clone().invert().multiply(rightLowerArmWorld);
+
+
+  // Leg
+  // left
+  const p_lKnee = pts[25];
+  const p_lAnkle = pts[27];
+
+  const leftUpperLegUpward = p_lHip.clone().sub(p_lKnee);
+  const leftLowerLegUpward = p_lKnee.clone().sub(p_lAnkle);
+
+  const leftLegLeft = new THREE.Vector3().crossVectors(leftLowerLegUpward, leftUpperLegUpward);
+
+  const leftUpperLegForward = new THREE.Vector3().crossVectors(leftLegLeft, leftUpperLegUpward);
+  const leftUpperLegLook = lookRotation(leftUpperLegForward, leftUpperLegUpward);
+  const leftUpperLegWorld = leftUpperLegLook.clone().multiply(restQuats['leftUpperLeg'].clone().invert());
+  out['leftUpperLeg'] = hipWorld?.clone().invert().multiply(leftUpperLegWorld);
+
+  const leftLowerLegForward = new THREE.Vector3().crossVectors(leftLegLeft, leftLowerLegUpward);
+  const leftLowerLegLook = lookRotation(leftLowerLegForward, leftLowerLegUpward);
+  const leftLowerLegWorld = leftLowerLegLook.clone().multiply(restQuats['leftLowerLeg'].clone().invert());
+  out['leftLowerLeg'] = leftUpperLegWorld?.clone().invert().multiply(leftLowerLegWorld);
+
+  // right
+  const p_rKnee = pts[26];
+  const p_rAnkle = pts[28];
+
+  const rightUpperLegUpward = p_rHip.clone().sub(p_rKnee);
+  const rightLowerLegUpward = p_rKnee.clone().sub(p_rAnkle);
+
+  const rightLegLeft = new THREE.Vector3().crossVectors(rightLowerLegUpward, rightUpperLegUpward);
+
+  const rightUpperLegForward = new THREE.Vector3().crossVectors(rightLegLeft, leftUpperLegUpward);
+  const rightUpperLegLook = lookRotation(rightUpperLegForward, rightUpperLegUpward);
+  const rightUpperLegWorld = rightUpperLegLook.clone().multiply(restQuats['rightUpperLeg'].clone().invert());
+  out['rightUpperLeg'] = hipWorld?.clone().invert().multiply(rightUpperLegWorld);
+
+  const rightLowerLegForward = new THREE.Vector3().crossVectors(rightLegLeft, rightLowerLegUpward);
+  const rightLowerLegLook = lookRotation(rightLowerLegForward, rightLowerLegUpward);
+  const rightLowerLegWorld = rightLowerLegLook.clone().multiply(restQuats['rightLowerLeg'].clone().invert());
+  out['rightLowerLeg'] = rightUpperLegWorld?.clone().invert().multiply(rightLowerLegWorld);
 
   // TODO
-  // 나머지 사지
-  for (const def of BONE_DEFS_FULL) {
-    if (!isValid(def.parentIndex) || !isValid(def.childIndex) || !restQuats[def.name]) continue;
-    if (def.name in ['head', 'neck', 'spine', 'hips', 'chest']) {
-      continue;
-    }
-
-    const { name, parentIndex, childIndex } = def; 
-    const p = pts[parentIndex];
-    const c = pts[childIndex];
-
-    // 팔
-    if (name in ['leftUpperArm', 'rightUpperArm', 'leftLowerArm', 'rightLowerArm']) {
-      // forward (Z) : (L -> R) x (L -> Spine)
-      let v_arm_lr: THREE.Vector3;
-      let v_arm_ls: THREE.Vector3;
-
-      if (name.includes('left')) {
-        v_arm_lr = c.clone().sub(p);
-        v_arm_ls = p_spine.clone().sub(c)
-      }
-      else { // right
-        v_arm_lr = p.clone().sub(c);
-        v_arm_ls = p_spine.clone().sub(p);
-      }
-
-      const forward = new THREE.Vector3().crossVectors(v_arm_ls, v_arm_lr).normalize();
-
-      // upward
-      const upward = new THREE.Vector3().crossVectors(forward, v_arm_lr).normalize();
-
-      const look = lookRotation(forward, upward);
-      const final = look.clone().multiply(restQuats[name].clone().invert());
-
-      out[name] = final;
-    }
-    // if (name in ['leftUpperArm', 'rightUpperArm']) {
-    //   // 상박 (Upper Arm)
-    //   const restQuatInv = restQuats[name].clone().invert();
-    //   const forward = c.clone().sub(p).normalize(); // P -> C (뼈 방향)
-
-    //   // Upward: Midspine(35) -> Parent(어깨)
-    //   const up = pts[35].clone().sub(p).normalize(); 
-
-    //   const look = lookRotation(forward, up);
-    //   out[name] = look.clone().multiply(restQuatInv);
-    // }
-    // if (name in ['leftLowerArm', 'rightLowerArm']) {
-    //   // 하박 (Lower Arm)
-    //   const restQuatInv = restQuats[name].clone().invert();
-    //   const forward = c.clone().sub(p).normalize(); // P -> C (뼈 방향)
-
-    //   // Upward: Parent(팔꿈치) -> Child(손목)
-    //   const up = p.clone().sub(c).normalize(); 
-
-    //   const look = lookRotation(forward, up);
-    //   out[name] = look.clone().multiply(restQuatInv);
-    // }
-
-    // 다리
-
-
-    // // forward
-    
-    // // 1. forward (Z축): 뼈의 방향 (Parent -> Child)
-    // const forward = c.clone().sub(p).normalize();
-    
-    // // 2. upward (Y축): 굽힘 평면을 고정하는 벡터
-    // let up: THREE.Vector3;
-
-    // if (name.includes('Lower') || name.includes('Foot')) {
-    //     // Lower Arm/Leg/Foot: 굽힘 평면 고정 -> 부모 관절(Parent) 쪽을 Up으로
-    //     // Up = Parent - Child
-    //     up = p.clone().sub(c).normalize(); 
-    // } else if (name.includes('Upper')) { 
-    //     // Upper Arm/Leg: 회전 꼬임 방지 -> 몸통 중앙(35:midspine)을 향하도록
-    //     // Up = Midspine(35) - Parent
-    //     if (!isValid(35)) continue;
-    //     up = pts[35].clone().sub(p).normalize();
-    // } else {
-    //     // 정의되지 않은 관절
-    //     continue;
-    // }
-    
-    // // 3. 쿼터니언 계산
-    // const restQuatInv = restQuats[name].clone().invert();
-    // const currentQuat = lookRotation(forward, up);
-    
-    // // 최종 회전 = Q_look * Q_rest_inv (델타 회전량)
-    // const finalQuat = currentQuat.clone().multiply(restQuatInv);
-
-    // out[name] = finalQuat;
-  }
-
-
-
-  // for (const def of BONE_DEFS_FULL) {
-  //   if (!isValid(def.parentIndex) || !isValid(def.childIndex) || !restQuats[def.name]) continue;
-
-  //   // upwardsIndex는 사용하지 않고 로직으로 Up 벡터를 강제합니다.
-  //   const { name, parentIndex, childIndex } = def; 
-  //   const p = pts[parentIndex];
-  //   const c = pts[childIndex];
-
-  //   const restQuatInv = restQuats[name].clone().invert();
-  //   // Forward (Z축): 뼈의 방향 (Parent -> Child)
-  //   const forward = c.clone().sub(p).normalize();
-    
-  //   let up: THREE.Vector3;
-
-  //   if (name.includes('Lower') || name.includes('Foot')) {
-  //       // Lower Arm/Leg/Foot: 굽힘 평면 고정 -> 부모 관절(Parent) 쪽을 Up으로
-  //       // Up = Parent - Child
-  //       up = p.clone().sub(c).normalize(); 
-  //   } else if (name.includes('Upper')) { 
-  //       // Upper Arm/Leg: 회전 꼬임 방지 -> 몸통 중앙(35:midspine)을 향하도록
-  //       // Up = Midspine(35) - Parent
-  //       if (!isValid(35)) continue;
-  //       up = pts[35].clone().sub(p).normalize();
-  //   } else {
-  //       continue;
-  //   }
-    
-  //   // 목표 회전 계산
-  //   const currentQuat = lookRotation(forward, up);
-  //   // 최종 회전 = Q_look * Q_rest_inv
-  //   const finalQuat = currentQuat.clone().multiply(restQuatInv);
-
-  //   out[name] = finalQuat;
-  // }
+  // Hand
+  // Foot
 
   return out as Record<VRMHumanBoneName, THREE.Quaternion>;
 }
@@ -267,14 +213,15 @@ function lookRotation(forward: THREE.Vector3, up: THREE.Vector3): THREE.Quaterni
   return quaternion;
 }
 
+
+// not usees
+
 function triangleNormal(p1: THREE.Vector3, p2: THREE.Vector3, p3: THREE.Vector3): THREE.Vector3 {
     const v1 = p2.clone().sub(p1);
     const v2 = p3.clone().sub(p1);
     return v1.cross(v2).normalize();
 }
 
-
-// not use
 function computeTwistQuaternion(from: THREE.Vector3, to: THREE.Vector3): THREE.Quaternion {
   const q = new THREE.Quaternion();
   if (from.dot(to) < -0.999999) {

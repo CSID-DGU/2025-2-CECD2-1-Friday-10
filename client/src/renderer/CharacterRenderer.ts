@@ -76,13 +76,13 @@ export class CharacterRenderer {
 
     // 1. 직접 리깅 로직 호출
     // frame: MediaPipe 3D 랜드마크 배열 (Z 반전이 된 상태)
-    // this.restQuats: T-Pose의 쿼터니언을 포함 (C#의 InitRotation 역할)
+    // this.restQuats: T-Pose의 쿼터니언을 포함 (Initial Rotation)
     const rigQuats = directRig(frame, this.restQuats);
 
     const humanoid = this.vrm!.humanoid!;
 
     // CHECK!!! for debugging
-    const torsoBones: VRMHumanBoneName[] = ['hips', 'spine', 'chest', 'neck', 'head', 'rightUpperArm', 'leftUpperArm']; // neck도 포함
+    const torsoBones: VRMHumanBoneName[] = ['hips', 'spine', 'chest', 'neck', 'head', 'rightUpperArm', 'leftUpperArm', 'leftLowerArm', 'rightUpperArm', 'rightLowerArm', 'leftUpperLeg', 'leftLowerLeg', 'rightUpperLeg', 'rightLowerLeg']; // neck도 포함
 
 
     // 2. 계산된 회전값 적용
@@ -95,16 +95,16 @@ export class CharacterRenderer {
         if (node && q_rest && q_delta) {
           
           // for debugging
-          if (torsoBones.includes(boneName)) {
-              // 1. 몸통 관절: 표준 VRM/Animation 공식 적용
-              // Q_final = Q_rest_initial * Q_delta
-              node.quaternion.copy(q_rest.clone().multiply(q_delta)); 
-          } else {
-              // 2. 사지 관절: T-Pose 초기값 유지 (디버깅용)
-              node.quaternion.copy(q_rest);
-          }
+          // if (torsoBones.includes(boneName)) {
+          //     // 1. 몸통 관절: 표준 VRM/Animation 공식 적용
+          //     // Q_final = Q_rest_initial * Q_delta
+          //     node.quaternion.copy(q_rest.clone().multiply(q_delta)); 
+          // } else {
+          //     // 2. 사지 관절: T-Pose 초기값 유지 (for debugging)
+          //     node.quaternion.copy(q_rest);
+          // }
           // for real
-          // node.quaternion.copy(q_rest.clone().multiply(q_delta));
+          node.quaternion.copy(q_rest.clone().multiply(q_delta));
           
         }
       }
@@ -131,20 +131,6 @@ export class CharacterRenderer {
             // hipsNode.position.set(hx, hipsToFoot, hz);
         }
     }
-    
-    // // ** 회전 적용 공식 수정 (Final Check) **
-    // (Object.entries(rigQuats) as [VRMHumanBoneName, THREE.Quaternion][]).forEach(
-    //     ([boneName, q_delta]) => {
-    //         const node = humanoid.getNormalizedBoneNode(boneName);
-    //         const q_rest = this.restQuats[boneName];
-
-    //         if (node && q_rest && q_delta) {
-    //             // T-Pose 초기 회전에 델타 회전(q_delta)을 곱하여 최종 로컬 회전을 얻습니다.
-    //             // q_final = q_rest_initial * q_delta
-    //             node.quaternion.copy(q_rest.clone().multiply(q_delta)); 
-    //         }
-    //     }
-    // );
     
     this.vrm.update(delta);
   }
