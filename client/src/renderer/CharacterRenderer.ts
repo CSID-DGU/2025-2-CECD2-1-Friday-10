@@ -17,6 +17,9 @@ export class CharacterRenderer {
   // T-Pose 상태에서 각 뼈대의 초기 (Rest) 쿼터니언을 저장합니다.
   private restQuats: Record<VRMHumanBoneName, THREE.Quaternion> = {} as any; 
 
+  private hipPositionX1 : number;
+  private hipPositionX2 : number;
+
   constructor(scene: THREE.Scene, renderer: THREE.WebGLRenderer, modelUrl: string) {
     this.scene = scene;
     
@@ -57,16 +60,20 @@ export class CharacterRenderer {
     );
   }
 
-  // 기존 update 함수는 Kalidokit을 사용하므로 제거하거나 updateBy3D로 통일합니다.
   public update(frame: {pose3D: Landmark[], pose2D: NormalizedLandmark[]}) {
     // 3D 랜드마크 데이터만 사용하여 SkeletonFrame 형식으로 변환합니다.
-    const converted3D : SkeletonFrame = frame.pose3D.map((lm, index) => ({
-      name: `lm${index}`, // 임시 이름
-      position: [lm.x, lm.y, -lm.z], // CHECK!!!
-      visibility: 1
-    }));
+    // const converted3D : SkeletonFrame = frame.pose3D.map((lm, index) => ({
+    //   name: `lm${index}`, // 임시 이름
+    //   position: [lm.x, lm.y, -lm.z], // CHECK!!!
+    //   visibility: 1
+    // }));
+
+    // this.characterPositionX = ((frame.pose2D[23].x + frame.pose2D[24].x) / 2 - 0.5)
+
+    this.hipPositionX1 = frame.pose2D[23].x;
+    this.hipPositionX2 = frame.pose2D[24].x;
     
-    this.updateBy3D(converted3D);
+    // this.updateBy3D(converted3D);
   }
 
   // **3D 랜드마크를 직접 리깅하는 핵심 함수**
@@ -93,19 +100,7 @@ export class CharacterRenderer {
         const q_rest = this.restQuats[boneName];
 
         if (node && q_rest && q_delta) {
-          
-          // for debugging
-          // if (torsoBones.includes(boneName)) {
-          //     // 1. 몸통 관절: 표준 VRM/Animation 공식 적용
-          //     // Q_final = Q_rest_initial * Q_delta
-          //     node.quaternion.copy(q_rest.clone().multiply(q_delta)); 
-          // } else {
-          //     // 2. 사지 관절: T-Pose 초기값 유지 (for debugging)
-          //     node.quaternion.copy(q_rest);
-          // }
-          // for real
           node.quaternion.copy(q_rest.clone().multiply(q_delta));
-          
         }
       }
     );
@@ -126,7 +121,9 @@ export class CharacterRenderer {
 
             const hipsToFoot = hy - lowestFootY;
 
-            hipsNode.position.set(1, hipsToFoot, 0);
+            const positionX = ((this.hipPositionX1 + this.hipPositionX2) / 2 - 0.5) * 10;
+
+            hipsNode.position.set(positionX, hipsToFoot, hz);
 
             // hipsNode.position.set(hx, hipsToFoot, hz);
         }

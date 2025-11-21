@@ -29,7 +29,7 @@ import CaptureController from './components/CaptureController';
 function App() {
   return (
     <div>
-      <h1>Live 3D Skeleton Capture</h1>
+      <h1>Live 3D 태권학습</h1>
       <CaptureController />
     </div>
   );

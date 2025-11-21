@@ -212,6 +212,18 @@ export function directRig(frame: SkeletonFrame, restQuats: Record<VRMHumanBoneNa
   // TODO
   // Hand
 
+
+  // -5 degree
+  const correction = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), THREE.MathUtils.degToRad(-5));
+
+  const rotatedForward = hipsForward.clone().applyQuaternion(correction);
+  const rotatedUpward  = hipsUpward.clone().applyQuaternion(correction);
+
+  // Look + rest correction
+  const rotatedHipLook = lookRotation(rotatedForward, rotatedUpward);
+  const rotatedHipWorld = rotatedHipLook.multiply(restQuats['hips'].clone().invert());
+  out['hips'] = rotatedHipWorld;
+
   return out as Record<VRMHumanBoneName, THREE.Quaternion>;
 }
 

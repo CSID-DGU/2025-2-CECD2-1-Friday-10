@@ -41,7 +41,7 @@ export class SkeletonCaptureGhum implements IDataAdapter {
   private prevLandmarks: Landmark[] | null = null;
   private prevNormalizedLandmarks: NormalizedLandmark[] | null = null;
 
-  private smoothingAlpha = 0.6;   // [0..1], 클수록 더 부드러움
+  private smoothingAlpha = 0.8;   // [0..1], 클수록 더 부드러움
 
   constructor(videoElement: HTMLVideoElement, sourceType: CaptureSourceType, src?: string) {
     this.video = videoElement;
