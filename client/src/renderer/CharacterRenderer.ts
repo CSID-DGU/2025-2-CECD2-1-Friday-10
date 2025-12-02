@@ -123,7 +123,7 @@ export class CharacterRenderer {
 
             const positionX = ((this.hipPositionX1 + this.hipPositionX2) / 2 - 0.5) * 10;
 
-            hipsNode.position.set(positionX, hipsToFoot, hz);
+            hipsNode.position.set(positionX, hipsToFoot + 0.1, hz);
 
             // hipsNode.position.set(hx, hipsToFoot, hz);
         }

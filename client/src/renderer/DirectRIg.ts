@@ -246,6 +246,7 @@ function lookRotation(forward: THREE.Vector3, up: THREE.Vector3): THREE.Quaterni
 }
 
 
+
 // not usees
 
 function triangleNormal(p1: THREE.Vector3, p2: THREE.Vector3, p3: THREE.Vector3): THREE.Vector3 {

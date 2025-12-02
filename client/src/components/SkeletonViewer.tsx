@@ -24,7 +24,7 @@ export default function SkeletonViewer({ provider, width = 800, height = 600 }: 
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    camera.position.set(0, 1.4, 1.5);
+    camera.position.set(-0.3, 1.3, 1.5);
 
     const ambient = new THREE.AmbientLight(0xffffff, 1);
     const dir = new THREE.DirectionalLight(0xffffff, 0.9);

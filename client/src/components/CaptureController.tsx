@@ -62,6 +62,10 @@ export default function CaptureController() {
         ctx.arc(x * canvas.width, y * canvas.height, 5, 0, 2*Math.PI);
         ctx.fill();
       });
+
+      // ctx.fillStyle = 'cyan';
+      // ctx.font = '70px Arial';
+      // ctx.fillText('몸통 지르기', 1300, 100);
     })
 
     
@@ -87,7 +91,7 @@ export default function CaptureController() {
         <input type="file" accept="video/*" onChange={handleFileChange} />
         {videoURL && (
         <button onClick={() => setMode('stream')}>
-         웹캠으로 돌아가기
+         WebCam
         </button>
         )}
 
