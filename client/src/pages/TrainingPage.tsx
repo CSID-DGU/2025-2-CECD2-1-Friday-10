@@ -1,6 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { t, useLang } from "../i18n";
 
+import { SkeletonCaptureGhum } from '../core/adapter/SkeletonCaptureGhum';
+import { DataProvider } from '../core/DataProvider';
+import SkeletonViewer from "../components/SkeletonViewer";
+import type { DataProvider as DataProviderType } from '../core/DataProvider';
+
 type TrainingTab = "capture" | "analysis";
 
 interface UploadedFile {
@@ -15,16 +20,25 @@ export const TrainingPage: React.FC = () => {
   useLang();
   const [activeTab, setActiveTab] = useState<TrainingTab>("capture");
   const [isRecording, setIsRecording] = useState(false);
-  const [viewMode, setViewMode] = useState<"2D" | "3D">("2D");
+  const [viewMode, setViewMode] = useState<"Skeleton" | "Character">("Character");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [fileCounter, setFileCounter] = useState(1);
+
+  const [mode, setMode] = useState<'stream' | 'video'>('video');
+
+  const [provider, setProvider] = useState<DataProviderType | null>(null);
 
   // Camera
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [trackLabel, setTrackLabel] = useState<string>("");
+
+  const [videoURL, setVideoURL] = useState<string | null>(null);
 
   const [selectedPoomsae, setSelectedPoomsae] = useState("taeguk1");
   const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
@@ -39,12 +53,28 @@ export const TrainingPage: React.FC = () => {
   const handleStartRecording = () => { console.log("Start recording..."); setIsRecording(true); };
   const handleStopRecording = () => { console.log("Stop recording..."); setIsRecording(false); };
   const handleSaveRecording = () => { console.log("Saved mock file"); };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     setFiles(prev => [...prev, { id: fileCounter, name: file.name, uploadedAt: new Date().toLocaleString() }]);
     setFileCounter(n => n + 1);
     console.log("Uploaded:", file.name);
+
+    // ──  기존 웹캠 스트림 해제  ──
+    if (videoRef.current?.srcObject instanceof MediaStream) {
+      (videoRef.current.srcObject as MediaStream)
+        .getTracks()
+        .forEach((t) => t.stop());
+      videoRef.current.srcObject = null;
+    }
+
+    // 업로드된 파일을 로컬 URL로 만들고 모드 전환
+    if (videoURL) URL.revokeObjectURL(videoURL);
+    const url = URL.createObjectURL(file);
+    setVideoURL(url);
+    setMode('video');
   };
+
   const handleRunAnalysis = () => {
     if (!selectedRecordId) { alert("훈련 기록을 선택하세요"); return; }
     const mock: AnalysisMetric[] = [
@@ -87,6 +117,7 @@ export const TrainingPage: React.FC = () => {
       const label = stream.getVideoTracks()[0]?.label || "";
       setTrackLabel(label);
       setCameraOn(true);
+      setMode("stream");
     } catch (err: any) {
       console.error(err);
       setCameraError(err?.message || t("training.camera.noAccess"));
@@ -106,11 +137,59 @@ export const TrainingPage: React.FC = () => {
     }
   };
 
+  // useEffect(() => {
+  //   return () => {
+  //     stopCamera();
+  //   };
+  // }, []);
+
   useEffect(() => {
+    if (!videoRef.current) return;
+    const adapter = new SkeletonCaptureGhum(
+      videoRef.current,
+      mode,
+      mode === 'video' ? videoURL! : undefined
+    );
+
+    const dataProvider = new DataProvider(adapter);
+    setProvider(dataProvider);
+
+    dataProvider?.on2DFrame((lms) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      // 해상도 맞추기
+      canvas.width  = videoRef.current!.videoWidth;
+      canvas.height = videoRef.current!.videoHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'red';
+      lms.forEach(({x,y}) => {
+        ctx.beginPath();
+        ctx.arc(x * canvas.width, y * canvas.height, 5, 0, 2*Math.PI);
+        ctx.fill();
+      });
+
+      // ctx.fillStyle = 'cyan';
+      // ctx.font = '70px Arial';
+      // ctx.fillText('몸통 지르기', 1300, 100);
+    })
+
+    
+    // adapter.onFrame((frame) => {
+    //   console.log("onFrame?")
+    //   if (recordingRef.current) recordedFrames.current.push(frame);
+    // })
+
+    adapter.init().then(() => adapter.play());
+
+    // cleanup: 컴포넌트 언마운트 시 adapter 루프 정리
     return () => {
-      stopCamera();
+      adapter.pause();
+      setProvider(null);
+      if (videoURL) URL.revokeObjectURL(videoURL);
     };
-  }, []);
+  }, [mode, videoURL]);
 
   return (
     <div className="page training-page">
@@ -128,14 +207,31 @@ export const TrainingPage: React.FC = () => {
                 <h2>{t("training.camera.title")}</h2>
               </div>
               <div className="viewer-area">
-                {cameraOn ? (
+                {/* {cameraOn ||  ? (
                   <>
                     <video ref={videoRef} className="viewer-video" autoPlay playsInline muted />
                     {trackLabel && <p className="meta">{`Device: ${trackLabel}`}</p>}
                   </>
                 ) : (
                   <div className="viewer-placeholder"><span>{t("training.camera.off")}</span></div>
-                )}
+                )} */}
+                <div style={{ position: 'relative', width: 600, height: 450 }}>
+                 <video
+                    loop
+                    ref={videoRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    style={{ width: '100%', height: '100%', border: '1px solid gray' }}
+                  />
+                  <canvas
+                    ref={canvasRef}
+                    style={{
+                      position: 'absolute', top: 45, left: 0,
+                      width: '100%', height: '80%', pointerEvents: 'none'
+                    }}
+                  />
+                  </div>
                 {cameraError && <p className="meta">{cameraError}</p>}
               </div>
             </section>
@@ -144,13 +240,16 @@ export const TrainingPage: React.FC = () => {
               <div className="viewer-header">
                 <h2>{t("training.viewer.title")}</h2>
                 <div className="view-mode-switch">
-                  <label><input type="radio" checked={viewMode==='2D'} onChange={()=>setViewMode('2D')} /> 2D</label>
-                  <label><input type="radio" checked={viewMode==='3D'} onChange={()=>setViewMode('3D')} /> 3D</label>
+                  <label><input type="radio" checked={viewMode==='Skeleton'} onChange={()=>setViewMode('Skeleton')} /> Skeleton </label>
+                  <label><input type="radio" checked={viewMode==='Character'} onChange={()=>setViewMode('Character')} /> Character</label>
                 </div>
               </div>
-              <div className="viewer-placeholder">
-                <span>{viewMode} skeleton preview</span>
-              </div>
+              {/* TODO: Skeleton */}
+              {provider && (
+                <div style={{ width: 800, height: 600 }}>
+                  <SkeletonViewer provider={provider} width={800} height={600} />
+                </div>
+              )}
             </section>
           </div>
           <section className="capture-controls card">

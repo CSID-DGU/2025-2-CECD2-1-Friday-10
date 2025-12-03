@@ -124,11 +124,11 @@ export const HomePage: React.FC = () => {
               </form>
             )}
             <hr style={{border:'none', borderTop:'1px solid #e5e7eb', margin:'14px 0'}} />
-            <div className="social-row">
+            {/* <div className="social-row">
               <button className="btn-kakao" type="button" onClick={()=>alert(t("home.social.kakao") + " (demo)")}>{t("home.social.kakao")}</button>
               <button className="btn-google" type="button" onClick={()=>alert(t("home.social.google") + " (demo)")}>{t("home.social.google")}</button>
             </div>
-            <p className="meta" style={{marginTop:8}}>{t("home.social.note")}</p>
+            <p className="meta" style={{marginTop:8}}>{t("home.social.note")}</p> */}
           </section>
           <LanguageSelector />
         </div>

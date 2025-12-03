@@ -53,7 +53,7 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "training.title": "훈련 센터",
     "training.tab.capture": "스켈레톤 캡처",
     "training.tab.analysis": "평가 분석",
-    "training.camera.title": "카메라 미리보기",
+    "training.camera.title": "카메라",
     "training.camera.off": "카메라가 꺼져 있습니다",
     "training.camera.unsupported": "현재 브라우저는 카메라 접근을 지원하지 않습니다(HTTPS 또는 localhost 필요).",
     "training.camera.noAccess": "카메라에 접근할 수 없습니다. 권한 설정을 확인하세요.",
