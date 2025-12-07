@@ -56,9 +56,15 @@ html, body, #root { margin:0; padding:0; height:100%; font-family: system-ui, -a
 .tab-btn.active { background:#ffffff; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
 .capture-layout { display:grid; grid-template-columns:2fr 1.3fr; gap:16px; }
 .capture-left { display:flex; flex-direction:column; gap:16px; }
+
+.capture-layout-new { display: flex; flex-direction:column; gap:16px; }
+.capture-module-new { display: grid; grid-template-columns:1fr 2fr; gap:16px; width: 100%; }
+.capture-module-row { display: flex; flex-direction: column; gap: 16px; }
+
 .viewer-placeholder { margin-top:8px; border-radius:12px; background:#e5e7eb; min-height:260px; display:flex; align-items:center; justify-content:center; color:#6b7280; }
 .viewer-video { margin-top:8px; width:100%; border-radius:12px; background:#000; min-height:260px; max-height:60vh; object-fit:cover; }
 .capture-controls .button-group { display:flex; gap:8px; margin:12px 0; }
+.capture-controls-first { display:flex; flex-direction: row; margin: 12px;}
 .file-list { list-style:none; padding:0; margin-top:8px; }
 .file-list li { display:flex; justify-content:space-between; font-size:13px; padding:4px 0; }
 .analysis-layout { display:flex; flex-direction:column; gap:16px; }
