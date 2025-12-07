@@ -13,9 +13,10 @@ type Props = {
   provider: DataProvider;
   width?: number;
   height?: number;
+  mode?: string;
 };
 
-export default function SkeletonViewer({ provider, width = 800, height = 600 }: Props) {
+export default function SkeletonViewer({ provider, width = 800, height = 600, mode = 'Chracter' }: Props) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
 
@@ -43,7 +44,7 @@ export default function SkeletonViewer({ provider, width = 800, height = 600 }: 
     scene.add(grid);
 
     const exrLoader = new EXRLoader();
-    exrLoader.load("/models/resting_place_1k.exr", function (texture) {
+    exrLoader.load("/character_models/resting_place_1k.exr", function (texture) {
       // 텍스처 매핑을 구형(Equirectangular) 방식으로 설정
       texture.mapping = THREE.EquirectangularReflectionMapping;
 
@@ -79,7 +80,7 @@ export default function SkeletonViewer({ provider, width = 800, height = 600 }: 
 
     const skeletonRenderer = new SkeletonRenderer(scene);
     const lineRenderer = new SkeletonLineRenderer(scene);
-    const characterRenderer = new CharacterRenderer(scene, renderer, "/models/VRM1_Constraint_Twist_Sample.vrm");
+    const characterRenderer = new CharacterRenderer(scene, renderer, "/character_models/VRM1_Constraint_Twist_Sample.vrm");
 
     // provider.on2DFrame?.((lm2d) => {
     //   characterRenderer.set2D(lm2d);
@@ -97,9 +98,15 @@ export default function SkeletonViewer({ provider, width = 800, height = 600 }: 
     })
 
     provider.on3DFrame?.((frame) => {
-      // skeletonRenderer.update(frame);
-      // lineRenderer.update(frame);
-      characterRenderer.updateBy3D(frame);
+      if(mode == 'Character') {
+        characterRenderer.updateBy3D(frame);
+      }
+      else {
+        skeletonRenderer.update(frame);
+        lineRenderer.update(frame);
+      }
+      
+      
     })
 
     const animate = () => {
@@ -114,18 +121,18 @@ export default function SkeletonViewer({ provider, width = 800, height = 600 }: 
         mountTarget.removeChild(renderer.domElement);
       }
     };
-  }, [provider, width, height]);
+  }, [provider, width, height, mode]);
 
   return (
     <div>
       <div ref={canvasRef} />
-      <button onClick={() => {
+      {/* <button onClick={() => {
         if (isPlaying) provider.pause();
         else provider.play();
         setIsPlaying(!isPlaying);
       }}>
         {isPlaying ? "Pause" : "Play"}
-      </button>
+      </button> */}
     </div>
   );
   
