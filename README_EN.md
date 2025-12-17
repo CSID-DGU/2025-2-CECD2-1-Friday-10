@@ -3,6 +3,8 @@
 # Web-based Taekwondo Motion Visualization and Analysis Platform
 ## Web Visualization of Motion Skeletons
 
+**2025 Dongguk University Capston Design** Team Friday (2025.03 - 2025.12)
+
 This project presents a web-based platform that visualizes Taekwondo poomsae motions using 3D skeletal representations and character animation, and evaluates the motions based on the extracted skeleton data from videos.
 
 <p align="center">
