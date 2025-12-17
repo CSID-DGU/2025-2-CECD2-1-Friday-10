@@ -1,4 +1,4 @@
-[한국어 버전](README.md)
+📄 [한국어 버전](README.md)
 
 # Web-based Taekwondo Motion Visualization and Analysis Platform
 ## Web Visualization of Motion Skeletons
@@ -37,7 +37,7 @@ Client (Web Browser)
 ↓
 Backend Server (AWS EC2)
 ├── Spring Boot (Java 21)
-├── JWT 인증
+├── JWT Authentication
 ├── MySQL (AWS RDS)
 └── AWS S3 (Video and Skeleton Data Storage)
 ```
