@@ -302,6 +302,8 @@ export const TrainingPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="viewer-area">
+                    <h3>품새 선택</h3>
+                    <p>
                       <select>
                         {POOMSAE.map((name, index) => (
                           <option key={index} value={name}>{name}</option>
