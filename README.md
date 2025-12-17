@@ -1,3 +1,5 @@
+📄 [English Version](README_EN.md)
+
 # 웹 기반 태권도 동작 시각화 및 분석 플랫폼
 ## 동작 스켈레톤의 웹 표시
 
