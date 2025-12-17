@@ -21,6 +21,11 @@ const CLASS_NAMES = [
   "앞차고 앞서고 지르기"
 ]
 
+const POOMSAE = [
+  "태극1장",
+  "태극2장"
+]
+
 type TrainingTab = "capture" | "analysis";
 
 interface UploadedFile {
@@ -210,7 +215,7 @@ export const TrainingPage: React.FC = () => {
         ctx.fill();
       });
 
-      if(classifierRef.current) {
+      if(isTraining && classifierRef.current) {
         const classifier = classifierRef.current;
         const result = await classifier.processFrame(lms);
     
@@ -296,7 +301,16 @@ export const TrainingPage: React.FC = () => {
 
                   </div>
                 ) : (
-                  <button className="btn-primary" onClick={startTraining} disabled={isTraining}>{"Start"}</button>
+                  <div className="viewer-area">
+                      <select>
+                        {POOMSAE.map((name, index) => (
+                          <option key={index} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </p>
+                    <button className="btn-primary" onClick={startTraining} disabled={isTraining}>{"Start"}</button>
+                  </div>
+                  
                 )}
                 
               </section>
