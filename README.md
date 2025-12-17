@@ -4,7 +4,7 @@
 본 프로젝트는 영상으로부터 태권도 품새 동작을 3D 스켈레톤 및 캐릭터 애니메이션으로 시각화 하고 해당 스켈레톤 데이터를 활용하여 태권도 동작을 평가하는 플랫폼이다.
 
 <p align="center">
-  <img src="TrainingPage.png" width="700"/>
+  <img src="images/TrainingPage.png" width="700"/>
 </p>
 <p align="center">
   Demo Video:  
