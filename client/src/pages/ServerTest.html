@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Skeleton Upload & Retrieval (Restful API Test)</title>
+    <meta charset="UTF-8" />
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        textarea, input[type="text"], input[type="password"] { width: 100%; margin-bottom: 10px; padding: 8px; }
+        button { padding: 10px 15px; margin-top: 5px; }
+        .section { margin-bottom: 30px; padding: 15px; border: 1px solid #ccc; border-radius: 8px; }
+        h3 { margin-top: 0; }
+        pre { background-color: #f4f4f4; padding: 10px; overflow-x: auto; }
+        #loginStatus { font-weight: bold; color: green; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<h2>🦴 Skeleton Upload & Retrieval Panel (RESTful API)</h2>
+
+<div id="loginStatus">로그인 상태: ❌</div>
+
+<div class="section">
+    <h3>🔑 회원가입 / 로그인</h3>
+    <input type="text" id="signupUserId" placeholder="User ID (회원가입)">
+    <input type="password" id="signupPassword" placeholder="Password (회원가입)">
+    <button onclick="signup()">회원가입</button>
+    <div id="signupResult" style="color: green;"></div>
+    
+    <hr style="margin: 10px 0;">
+
+    <input type="text" id="loginUserId" placeholder="User ID (로그인)">
+    <input type="password" id="loginPassword" placeholder="Password (로그인)">
+    <button onclick="login()">로그인</button>
+    <button onclick="logout()">로그아웃</button>
+    <div id="loginResult" style="color: blue;"></div>
+</div>
+
+<div class="section">
+    <h3>🗑️ 회원 탈퇴 (로그인 필요)</h3>
+    <p>❗️ 현재 로그인된 계정을 탈퇴합니다. User ID 입력 필드는 제거되었습니다.</p>
+    <button onclick="deleteUser()">회원 탈퇴</button>
+    <div id="deleteResult" style="color: red;"></div>
+</div>
+
+<hr>
+
+<div class="section">
+    <h3>1️⃣ Skeleton 데이터 업로드 (POST /api/upload/skeleton)</h3>
+    <p>❗️ User ID 입력 필드 제거됨. 로그인된 사용자로 처리됩니다.</p>
+    
+    <label>📹 Video Name:</label>
+    <input type="text" id="uploadVideoName" placeholder="ex: 태극1장" />
+
+    <label>📹 Extension:</label>
+    <input type="text" id="fileExtension" placeholder="ex: mp4" />
+    
+    <label>🦴 Joints JSON:</label>
+    <textarea id="uploadSkeletonJson" placeholder="여기에 joints JSON을 입력하세요"></textarea>
+    
+    <button onclick="uploadSkeleton()">📤 Upload Skeleton</button>
+    <div id="uploadResult" style="color: green; white-space: pre-line;"></div>
+</div>
+
+<div class="section">
+    <h3>2️⃣ Video / Photo 업로드 (Presigned URL)</h3>
+    <p>URL 생성 후, 이 파일이 S3로 직접 PUT 요청됩니다.</p>
+    <input type="file" id="photoFile" accept="video/*">
+    <button onclick="uploadPhoto()">📤 Upload File</button>
+    <div id="photoUploadResult" style="color: blue; white-space: pre-line;"></div>
+</div>
+
+<hr>
+
+<div class="section">
+    <h3>3️⃣ Skeleton JSON 조회 (GET /api/skeleton/videos/{videoId})</h3>
+    <p>❗️ User ID 입력 필드 제거됨. 로그인된 사용자의 비디오만 조회 가능합니다.</p>
+    
+    <label>📹 Video ID:</label>
+    <input type="text" id="getVideoId" placeholder="ex: 1234 (Long 타입 ID)" />
+    
+    <button onclick="getSkeleton()">🔍 Get Skeleton JSON</button>
+    <textarea id="skeletonOutput" readonly placeholder="조회된 joints JSON 데이터가 여기에 표시됩니다."></textarea>
+    <div id="retrieveResult" style="color: red;"></div>
+</div>
+
+<div class="section">
+    <h3>4️⃣ 사용자 전체 Video 목록 조회 (GET /api/videos)</h3>
+    <p>❗️ User ID 입력 필드 제거됨. 로그인된 사용자 목록만 조회합니다.</p>
+    
+    <button onclick="getUserVideos()">📋 Get Video List</button>
+    <pre id="videoListOutput"></pre>
+</div>
+
+<div class="section">
+    <h3>5️⃣ Skeleton 삭제 (DELETE /api/videos/{videoId})</h3>
+    <p>❗️ User ID 입력 필드 제거됨.</p>
+    
+    <label>📹 Video ID:</label>
+    <input type="text" id="deleteVideoId" placeholder="ex: 1234" />
+    
+    <button onclick="deleteSkeleton()">🗑️ Delete Skeleton</button>
+    <div id="deleteSkeletonResult" style="color: red;"></div>
+</div>
+
+<div class="section">
+    <h3>6️⃣ Video 다운로드 (GET /api/download/videos/{videoId})</h3>
+    <p>❗️ User ID 입력 필드 제거됨.</p>
+
+    <label>📹 Video ID:</label>
+    <input type="text" id="downloadVideoId" placeholder="ex: 1234" />
+
+    <button onclick="downloadFile()">⬇️ Download File</button>
+    <div id="downloadResult" style="color: purple; white-space: pre-line;"></div>
+</div>
+
+<hr>
+
+<div class="section">
+    <h3>7️⃣ 점수 저장 (POST /api/score/videos/{videoId}/score)</h3>
+    <p>❗️ 점수는 요청 본문(Body)으로 전달됩니다.</p>
+    <label>📹 Video ID:</label>
+    <input type="text" id="saveVideoId" placeholder="ex: 1234" />
+    <label>⭐ Score:</label>
+    <input type="text" id="saveScoreValue" placeholder="ex: 85.4 (String 또는 Number)" />
+    <button onclick="saveScore()">💾 Save Score</button>
+    <div id="saveScoreResult" style="color: green; white-space: pre-line;"></div>
+</div>
+
+<div class="section">
+    <h3>8️⃣ 점수 조회 (GET /api/score/videos/{videoId})</h3>
+    <p>❗️ User ID 입력 필드 제거됨.</p>
+    <label>📹 Video ID:</label>
+    <input type="text" id="getScoreVideoId" placeholder="ex: 1234" />
+    <button onclick="getScore()">🔍 Get Score</button>
+    <div id="getScoreResult" style="color: blue; white-space: pre-line;"></div>
+</div>
+
+<script>
+let jwtToken = "";
+let presignedUploadUrl = "";
+let presignedObjectName = "";
+
+function updateLoginStatus() {
+    const statusElem = document.getElementById("loginStatus");
+    statusElem.innerText = jwtToken ? "로그인 상태: ✅" : "로그인 상태: ❌";
+
+    if (!jwtToken) {
+        presignedUploadUrl = "";
+        presignedObjectName = "";
+        document.getElementById("uploadResult").innerText = "로그아웃으로 업로드 URL 초기화됨.";
+    }
+}
+
+// ---------------- 회원가입/로그인/로그아웃 ----------------
+
+function signup() {
+    const userId = document.getElementById("signupUserId").value.trim();
+    const password = document.getElementById("signupPassword").value.trim();
+    if (!userId || !password) { alert("User ID와 Password를 입력해주세요."); return; }
+
+    fetch("/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, password })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("회원가입 실패");
+        return res.json();
+    })
+    .then(() => {
+        document.getElementById("signupResult").innerText = "✅ 회원가입 성공!";
+    })
+    .catch(err => {
+        document.getElementById("signupResult").innerText = `❌ 회원가입 실패: ${err.message}`;
+    });
+}
+
+function login() {
+    const userId = document.getElementById("loginUserId").value.trim();
+    const password = document.getElementById("loginPassword").value.trim();
+    if (!userId || !password) { alert("User ID와 Password를 입력해주세요."); return; }
+
+    fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, password })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("로그인 실패");
+        return res.json();
+    })
+    .then(data => {
+        jwtToken = data.token;
+        document.getElementById("loginResult").innerText = "✅ 로그인 성공!";
+        updateLoginStatus();
+    })
+    .catch(err => {
+        document.getElementById("loginResult").innerText = `❌ 로그인 실패: ${err.message}`;
+        jwtToken = "";
+        updateLoginStatus();
+    });
+}
+
+function logout() {
+    jwtToken = "";
+    updateLoginStatus();
+    document.getElementById("loginResult").innerText = "🔒 로그아웃 완료";
+}
+
+// ---------------- 회원 탈퇴 (DELETE /auth/users) ----------------
+function deleteUser() {
+    if (!jwtToken) { alert("로그인 후 시도하세요."); return; }
+
+    fetch(`/auth/users`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + jwtToken }
+    })
+    .then(res => {
+        if (res.status === 204) {
+            document.getElementById("deleteResult").innerText = "✅ 회원 탈퇴 완료 (로그아웃 처리됨)";
+            logout();
+        }
+        else if (res.status === 404) document.getElementById("deleteResult").innerText = "❌ 사용자를 찾을 수 없음";
+        else throw new Error(`탈퇴 실패 (Status: ${res.status})`);
+    })
+    .catch(err => {
+        document.getElementById("deleteResult").innerText = `❌ 회원 탈퇴 실패: ${err.message}`;
+    });
+}
+
+// ---------------- 1️⃣ Skeleton 데이터 업로드 (POST /api/upload/skeleton) ----------------
+function uploadSkeleton() {
+    if (!jwtToken) { alert("로그인 후 시도하세요."); return; }
+
+    const videoName = document.getElementById("uploadVideoName").value.trim();
+    const fileExtension = document.getElementById("fileExtension").value.trim();
+    const jointsJson = document.getElementById("uploadSkeletonJson").value.trim();
+    if (!videoName || !fileExtension || !jointsJson) { alert("모든 입력값을 채워주세요."); return; }
+
+    let jointsObj;
+    try { jointsObj = JSON.parse(jointsJson); } 
+    catch { alert("Joints JSON이 올바르지 않습니다."); return; }
+
+    fetch("/api/upload/skeleton", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + jwtToken },
+
+        body: JSON.stringify({ videoName, fileExtension, joints: jointsObj })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`업로드 URL 생성 실패 (Status: ${res.status})`);
+        return res.json();
+    })
+    .then(data => {
+        presignedUploadUrl = data.uploadUrl;
+        presignedObjectName = data.objectName;
+        document.getElementById("uploadResult").innerText =
+            `✅ 업로드 URL 생성 성공!\nBucket: ${data.bucket}\nObject: ${data.objectName}\nUpload URL: ${data.uploadUrl}`;
+    })
+    .catch(err => { document.getElementById("uploadResult").innerText = `❌ Skeleton 업로드 URL 생성 실패: ${err.message}`; });
+}
+
+// ---------------- 2️⃣ Video / Photo 업로드 ----------------
+function uploadPhoto() {
+    const fileInput = document.getElementById("photoFile");
+    if (!fileInput.files.length) { alert("파일을 선택하세요."); return; }
+    if (!presignedUploadUrl) { alert("먼저 Skeleton JSON 업로드 후 Presigned URL을 받아야 합니다."); return; }
+
+    const file = fileInput.files[0];
+
+    fetch(presignedUploadUrl, { 
+        method: "PUT", 
+        headers: { "Content-Type": file.type || "application/octet-stream" },
+        body: file 
+    })
+    .then(res => {
+        if (res.ok) document.getElementById("photoUploadResult").innerText = "✅ 파일 업로드 완료!";
+        else document.getElementById("photoUploadResult").innerText = `❌ 파일 업로드 실패 (status: ${res.status})`;
+    })
+    .catch(err => { document.getElementById("photoUploadResult").innerText = `❌ 파일 업로드 실패: ${err.message}`; });
+}
+
+// ---------------- 3️⃣ Skeleton JSON 조회 (GET /api/skeleton/videos/{videoId}) ----------------
+function getSkeleton() {
+    if (!jwtToken) { alert("로그인 후 시도하세요."); return; }
+
+    const videoId = document.getElementById("getVideoId").value.trim();
+    if (!videoId) { alert("Video ID를 입력해주세요."); return; }
+
+    fetch(`/api/skeleton/videos/${videoId}`, {
+        headers: { "Authorization": "Bearer " + jwtToken }
+    })
+    .then(res => { 
+        if (res.status === 404) throw new Error("비디오를 찾을 수 없거나 접근 권한이 없습니다.");
+        if (!res.ok) throw new Error(`조회 실패 (Status: ${res.status})`); 
+        return res.json(); 
+    })
+    .then(data => { 
+
+        document.getElementById("skeletonOutput").value = JSON.stringify(data.joints, null, 2) || ""; 
+    })
+    .catch(err => { 
+        document.getElementById("skeletonOutput").value = "";
+        document.getElementById("retrieveResult").innerText = `❌ 조회 실패: ${err.message}`;
+    });
+}
+
+// ---------------- 4️⃣ 사용자 전체 Video 목록 조회 (GET /api/videos) ----------------
+function getUserVideos() {
+    if (!jwtToken) { alert("로그인 후 시도하세요."); return; }
+
+
+
+    fetch(`/api/videos`, {
+        headers: { "Authorization": "Bearer " + jwtToken }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`목록 조회 실패 (Status: ${res.status})`);
+        return res.json();
+    })
+    .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+            const output = data.map(video => `📹 videoId: ${video.videoId}, 📝 videoName: ${video.videoName}, 🕒 uploadTime: ${video.uploadTime}`).join("\n");
+            document.getElementById("videoListOutput").innerText = output;
+        } else { document.getElementById("videoListOutput").innerText = "❗️해당 유저의 영상이 없습니다."; }
+    })
+    .catch(err => { document.getElementById("videoListOutput").innerText = `❌ 목록 조회 실패: ${err.message}`; });
+}
+
+// ---------------- 5️⃣ Skeleton 삭제 (DELETE /api/videos/{videoId}) ----------------
+function deleteSkeleton() {
+    if (!jwtToken) { alert("로그인 후 시도하세요."); return; }
+
+    const videoId = document.getElementById("deleteVideoId").value.trim();
+    if (!videoId) { alert("Video ID를 입력해주세요."); return; }
+
+
+    fetch(`/api/videos/${videoId}`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + jwtToken }
+    })
+    .then(res => {
+        if (res.status === 204) document.getElementById("deleteSkeletonResult").innerText = "✅ 삭제 완료";
+        else if (res.status === 404) document.getElementById("deleteSkeletonResult").innerText = "❌ 비디오를 찾을 수 없거나 소유자가 아닙니다.";
+        else throw new Error(`삭제 실패 (Status: ${res.status})`);
+    })
+    .catch(err => { document.getElementById("deleteSkeletonResult").innerText = `❌ 삭제 실패: ${err.message}`; });
+}
+
+// ---------------- 6️⃣ Video 다운로드 (GET /api/download/videos/{videoId}) ----------------
+function downloadFile() {
+    if (!jwtToken) { alert("로그인 후 시도하세요."); return; }
+
+    const videoId = document.getElementById("downloadVideoId").value.trim();
+    if (!videoId) { alert("Video ID를 입력해주세요."); return; }
+
+    fetch(`/api/download/videos/${videoId}`, {
+        headers: { "Authorization": "Bearer " + jwtToken }
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`다운로드 URL 생성 실패 (Status: ${res.status})`);
+        return res.json();
+    })
+    .then(data => {
+        if (data.downloadUrl) {
+            document.getElementById("downloadResult").innerText = `✅ 다운로드 URL 생성 완료. 다운로드를 시작합니다.\nURL: ${data.downloadUrl}`;
+
+            const a = document.createElement("a");
+            a.href = data.downloadUrl;
+            a.download = data.videoName || `video_${videoId}`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } else {
+            throw new Error("다운로드 URL이 응답에 없습니다.");
+        }
+    })
+    .catch(err => { document.getElementById("downloadResult").innerText = `❌ 다운로드 실패: ${err.message}`; });
+}
+
+// ---------------- 7️⃣ 점수 저장 (POST /api/score/videos/{videoId}/score) ----------------
+function saveScore() {
+    if (!jwtToken) { alert("로그인 후 시도하세요."); return; }
+    const videoId = document.getElementById("saveVideoId").value.trim();
+    const score = document.getElementById("saveScoreValue").value.trim();
+    if (!videoId || !score) { alert("Video ID와 Score를 입력해주세요."); return; }
+
+
+    fetch(`/api/score/videos/${videoId}/score`, {
+        method: "POST",
+        headers: { 
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + jwtToken 
+        },
+        body: JSON.stringify({ score })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error(`점수 저장 실패 (Status: ${res.status})`);
+        return res.text();
+    })
+    .then(data => { document.getElementById("saveScoreResult").innerText = `✅ ${data}`; })
+    .catch(err => { document.getElementById("saveScoreResult").innerText = `❌ 점수 저장 실패: ${err.message}`; });
+}
+
+// ---------------- 8️⃣ 점수 조회 (GET /api/score/videos/{videoId}) ----------------
+function getScore() {
+    if (!jwtToken) { alert("로그인 후 시도하세요."); return; }
+
+    const videoId = document.getElementById("getScoreVideoId").value.trim();
+    if (!videoId) { alert("Video ID를 입력해주세요."); return; }
+
+    fetch(`/api/score/videos/${videoId}`, {
+        headers: { "Authorization": "Bearer " + jwtToken }
+    })
+    .then(res => {
+        if (res.status === 404) throw new Error("점수를 찾을 수 없습니다.");
+        if (!res.ok) throw new Error(`조회 실패 (Status: ${res.status})`);
+        return res.text();
+    })
+    .then(data => { document.getElementById("getScoreResult").innerText = `🎯 점수: ${data}`; })
+    .catch(err => { document.getElementById("getScoreResult").innerText = `❌ 점수 조회 실패: ${err.message}`; });
+}
+
+updateLoginStatus();
+</script>
+
+</body>
+</html>
